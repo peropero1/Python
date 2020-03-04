@@ -1,0 +1,1 @@
+print("nametest.py module name=", __name__)
