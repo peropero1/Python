@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "<ipython-input-4-d6bd824fcc72>", line 13, in <module>
+    pwdCheck(pwd)
+  File "<ipython-input-4-d6bd824fcc72>", line 5, in pwdCheck
+    raise Exception('密碼長度不足')
+Exception: 密碼長度不足
+Traceback (most recent call last):
+  File "<ipython-input-4-d6bd824fcc72>", line 13, in <module>
+    pwdCheck(pwd)
+  File "<ipython-input-4-d6bd824fcc72>", line 7, in pwdCheck
+    raise Exception('密碼長度過長')
+Exception: 密碼長度過長
