@@ -1,5 +1,6 @@
 import hyperloglog
 
+# ==========================data structure==========================
 class Node():
     def __init__(self,count=0):
         self.count=count
@@ -11,14 +12,14 @@ class Node():
         return ''
 
 class Head(Node):
-    def __init__(self,count=0):
+    def __init__(self,count=1):
         super().__init__(count)
         self.distinct = hyperloglog.HyperLogLog(0.01)
         self.maxID=''
     def __str__(self):
-        return '[total count: {}, distinct: {}]'.format(self.count,len(self.distinct))
+        return '[total count: {}, distinct: {}, max: {}]'.format(self.count,len(self.distinct),self.maxID)
     def __repr__(self):
-        return '[total count: {}, distinct: {}]'.format(self.count,len(self.distinct))
+        return '[total count: {}, distinct: {}, max: {}]'.format(self.count,len(self.distinct),self.maxID)
 
 class Tail(Node):
     def __init__(self,ID,count):
@@ -28,3 +29,4 @@ class Tail(Node):
         return '[ID: {}, count: {}]'.format(self.ID,self.count)
     def __repr__(self):
         return '[ID: {}, count: {}]'.format(self.ID,self.count)
+# ==========================data structure==========================
