@@ -118,24 +118,27 @@ def Update_local_max(head_item,element_list,avg,incoming_element,index):
     print("In Update_local_max():")
     numertor,denominator=get_fraction()
     width,depth=get_width_depth()
-    local_max_ID=mmh3.hash(str(spookyhash.hash32(bytes(str(head_item.maxID),encoding='utf-8'))), signed=False) % ((width*numertor)//denominator)
-    #print("local_max_ID:{}".format(local_max_ID))
-    local_max_index=find(Tail(local_max_ID,1),element_list)
-    #print("local_max_index:{}".format(local_max_index))
-    # 此處當hashed ID相同時暫不更新 local max
-    if local_max_index>=0:
-        # local max exists
-        if index>=0:
-            # e in Sk[row]
-            if element_list[index].count>element_list[local_max_index].count:
-                head_item.maxID=incoming_element.ID
-        else:
-            # e in Other
-            if avg>element_list[local_max_index].count:
-                head_item.maxID=incoming_element.ID
-    else:
-        # local max doesn't exists
+    if head_item.maxID=='':
         head_item.maxID=incoming_element.ID
+    else:
+        local_max_ID=mmh3.hash(str(spookyhash.hash32(bytes(str(head_item.maxID),encoding='utf-8'))), signed=False) % ((width*numertor)//denominator)
+        #print("local_max_ID:{}".format(local_max_ID))
+        local_max_index=find(Tail(local_max_ID,1),element_list)
+        #print("local_max_index:{}".format(local_max_index))
+        # 此處當hashed ID相同時暫不更新 local max
+        if local_max_index>=0:
+            # local max exists
+            if index>=0:
+                # e in Sk[row]
+                if element_list[index].count>element_list[local_max_index].count:
+                    head_item.maxID=incoming_element.ID
+            else:
+                # e in Other
+                if avg>element_list[local_max_index].count:
+                    head_item.maxID=incoming_element.ID
+        else:
+            # local max doesn't exists
+            head_item.maxID=incoming_element.ID
 
 # ==========================update e_max==========================
 def Update_emax(head_item,element_list,incoming_element,avg_count):
@@ -143,18 +146,16 @@ def Update_emax(head_item,element_list,incoming_element,avg_count):
     print("In Update_emax():")
     e_max=get_emax()
     numerator,denominator=get_fraction()
-    local_max_ID=""
-    local_max_index=""
+    # local_max_ID=""
+    # local_max_index=""
     print("e_max before update:{}".format(e_max))
     print("Sk_head:{}".format(head_item))
     width,depth=get_width_depth()
-    if head_item.maxID=="":
-        pass
-    else:
+    if head_item.maxID!="":
         local_max_ID=mmh3.hash(str(spookyhash.hash32(bytes(str(head_item.maxID),encoding='utf-8'))), signed=False) % ((width*numerator)//denominator)
-        print("local_max_ID:{}".format(local_max_ID))
+        # print("local_max_ID:{}".format(local_max_ID))
         local_max_index=find(Tail(local_max_ID,1),element_list)        
-        print("local_max_index:{}".format(local_max_index))
+        # print("local_max_index:{}".format(local_max_index))
         if local_max_index>=0:
             if element_list[local_max_index].count>e_max.count:
                 e_max.ID=head_item.maxID
@@ -220,7 +221,11 @@ def position(element):
     numertor,denominator=get_fraction()
     width,depth=get_width_depth()
     hash1=spookyhash.hash32(bytes(str(element.ID),encoding='utf-8'))
+        # input of spooky: byte
+        # output of spooky:unsigned- 32 bit int
     hash2=mmh3.hash(str(hash1), signed=False)
+        # input of mmh: str
+        # output: unsigned- 32 bit int
     ID=hash2 % ((width*numertor)//denominator)
     row=hash1 % depth    
     return ID,row
@@ -245,19 +250,19 @@ denominator=10
 Top=[]
 Sk_head=[Head(0) for j in range(depth)]
 Sk=[[] for i in range(depth)]
-item_count=10000
+# item_count=1000
 i=0
 e_max=Tail('',0)
 
 with open(src_data,'r') as file:
-    while item_count:
+    while True:
         element=file.readline().strip('\n')
         if not element:
             break
         else:
             i+=1
             print("\nread {}-th element: {}".format(i,element))
-            item_count-=1
+            # item_count-=1
             item=Tail(element,1)
             if len(Top)==0:
                 Top.append(item)
@@ -278,7 +283,7 @@ with open(src_data,'r') as file:
             # ID,row=position(Top[-1])
             if e_max.count>Top[-1].count:
                 BringBack(Top[-1],Sk_head,Sk)
-                # print('Top after BringBack: \n\t{}'.format(Top))            
+                print('Top after BringBack: \n\t{}'.format(Top))            
 
 
 end=time.time()
@@ -295,6 +300,6 @@ for i in Top:
     templi.append([i.ID,i.count])
 
 df=pd.DataFrame(templi,columns=['ID', 'Count'])
-df.to_csv("..\\result\\kosarak\\Myalgo_kosarak_100k_count.csv",index=False)
+df.to_csv("..\\result\\kosarak\\Myalgo_kosarak_count.csv",index=False)
 df.head(20)
 
