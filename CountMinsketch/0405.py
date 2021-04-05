@@ -1,6 +1,3 @@
-## print out, trace version 
-
-
 import spookyhash
 import mmh3
 from numpy import random
@@ -10,7 +7,6 @@ import operator
 import hyperloglog
 import sys
 import pandas as pd
-import pdb
 import cProfile
 
 # ==========================data structure==========================
@@ -91,7 +87,6 @@ def UpdateSk(element,Sk_head,Sk):
                     # print("distinct element:{}".format(len(Sk_head[row].distinct)))
                     # print("avg< last one,send to distinct")
                     # match=False
-    # pdb.set_trace()
     Sk_head[row].count+=item.count
         # total count最後再+1 在line 82要compare distinct
     # now we have:
@@ -109,7 +104,6 @@ def UpdateSk(element,Sk_head,Sk):
     
     # ==========================update e_max==========================
     Update_emax(Sk_head[row],Sk[row],element,avg)
-    # Update_emax(Sk_head[row],Sk[row],element,avg)
     
     Sk[row].sort(key=operator.attrgetter('count'),reverse=True)
     print("e_max:{}".format(e_max))
@@ -142,7 +136,6 @@ def Update_local_max(head_item,element_list,avg,incoming_element,index):
     else:
         # local max doesn't exists
         head_item.maxID=incoming_element.ID
-    # pdb.set_trace()
 
 # ==========================update e_max==========================
 def Update_emax(head_item,element_list,incoming_element,avg_count):
@@ -171,7 +164,6 @@ def Update_emax(head_item,element_list,incoming_element,avg_count):
                 e_max.ID=head_item.maxID
                 e_max.count=avg_count
     print("e_max after update:{}".format(e_max))
-    # pdb.set_trace()
 
 # ========================== BringBack=========================
 def BringBack(e_min,head,sketch):
@@ -187,7 +179,6 @@ def BringBack(e_min,head,sketch):
     # update e_max in Sk[row]
     # print("e_max after delete:{},id(e_max):{}".format(e_max,id(e_max)))
     UpdateSk(temp,head,sketch)
-    # pdb.set_trace()
     # print("Sk[] after Update {}:\n\t{}".format(e_min,Sk))
 
 # ========================== BringBack=========================
@@ -211,7 +202,6 @@ def DeleteSk(element,head,sketch):
     element.ID=""
     element.count=0
     # print("e_max After DeleteSk(element):{},id(e_max):{}".format(e_max,id(e_max)))
-    # pdb.set_trace()
 # ==========================Tools=========================    
 def get_emax():
     return e_max
@@ -245,8 +235,8 @@ filename='kosarak.dat'
 filepath="..\\dataset\\"
 src_data=os.path.join(filepath,filename)
 depth=4
-width=4
-size=4
+width=128
+size=1024
 numerator=12
 denominator=10
     # numerator/denominator decides ratio of Other+Sketch /Sketch
@@ -287,9 +277,8 @@ with open(src_data,'r') as file:
             Top.sort(key=operator.attrgetter('count'),reverse=True)
             # ID,row=position(Top[-1])
             if e_max.count>Top[-1].count:
-                # pdb.set_trace()
                 BringBack(Top[-1],Sk_head,Sk)
-                print('Top after BringBack: \n{}'.format(Top))            
+                # print('Top after BringBack: \n\t{}'.format(Top))            
 
 
 end=time.time()
