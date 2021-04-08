@@ -43,7 +43,6 @@ class Tail(Node):
 def UpdateSk(element,Sk_head,Sk):
     e_max=get_emax()
     width,depth=get_width_depth()
-    numerator,denominator=get_fraction()
     col,row=position(element)
         # col / row index of element 
     avg=0
@@ -55,8 +54,7 @@ def UpdateSk(element,Sk_head,Sk):
         Sk[row][col]+=1
     else:
         # e in Other
-        count_sum=sum(i for i in Sk[row])
-        avg=(Sk_head[row].count-count_sum)//(width*((numerator/denominator)-1))
+        pass
     Update_local_max(Sk_head[row],Sk[row],element,col)
     Update_emax(Sk_head,Sk)
 
@@ -66,9 +64,12 @@ def UpdateSk(element,Sk_head,Sk):
         print("Sk[{}]:{},{}".format(i,Sk_head[i],Sk[i]))
     print('')
 '''
+
+
 # ==========================update local max==========================       
 def Update_local_max(head_item,element_list,element,column):
     # local max need only 1 row
+    #print("In Update_local_max:")
     numerator,denominator=get_fraction()
     width,depth=get_width_depth()
     if head_item.maxID=='':
@@ -90,8 +91,9 @@ def Update_local_max(head_item,element_list,element,column):
         else:
             # local max in Other
             count_sum=sum(i for i in element_list)
-            avg=(head_item.count-count_sum)//(width*((numerator/denominator)-1))  
+            avg=int((head_item.count-count_sum)//(width*((numerator/denominator)-1)))
             if column<width:
+                # e in Sketch
                 if column<width:
                     if element_list[column]>avg:
                            head_item.maxID=element.ID
@@ -101,6 +103,7 @@ def Update_local_max(head_item,element_list,element,column):
 # ==========================update e_max==========================
 def Update_emax(head,sketch):
     # pass whole array
+    #print("In Update_emax:")
     e_max=get_emax()
     numerator,denominator=get_fraction()
     width,depth=get_width_depth()
@@ -110,17 +113,20 @@ def Update_emax(head,sketch):
         else:
             local_max_col,local_max_row=position(Tail(head[i].maxID,0))
             if local_max_col<width:
+                # local max in Sketch
                 if sketch[local_max_row][local_max_col]>e_max.count:
                     e_max.ID=head[i].maxID
                     e_max.count=sketch[local_max_row][local_max_col]
             else:
+                pass
+                '''
                 # local max in Other
                 count_sum=sum(j for j in sketch[i])
-                avg=(head[i].count-count_sum)//(width*((numerator/denominator)-1))
+                avg=int((head[i].count-count_sum)//(width*((numerator/denominator)-1)))
                 if avg>e_max.count:
                     e_max.ID=head[i].maxID
                     e_max.count=avg
-                    
+                '''
 # ========================== BringBack=========================
 def BringBack(e_min,head,sketch):
     # bring e_max back to Top
@@ -140,10 +146,11 @@ def DeleteSk(element,head,sketch):
     col,row=position(element)
     head[row].count-=e_max.count
         # total_count-=element.count
+
     if col<width:
         # e_max in sketch, need to config sk[r][c]=0
         sketch[row][col]=0
-        
+        head[row].maxID=''
     element.ID=""
     element.count=0
 # ==========================Tools=========================    
@@ -189,11 +196,11 @@ denominator=10
 start=time.time()
 
 Sk_head=[Head(0) for j in range(depth)]
-Sketch=np.zeros((depth,width),dtype='int')
+Sketch=np.zeros((depth,width),dtype='int32')
 e_max=Tail('',0)
 Top=[]
 
-item_count=100
+item_count=10000
 income=0
 with open(src_data,'r') as file:
     while True:
