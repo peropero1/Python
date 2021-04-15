@@ -1,9 +1,3 @@
-# hash-map array version.
-# Top 512+Sketch 256*4
-# type(head_node.distinct):int
-# avg=int((head_item.count-head_item.distinct)//(width*((numerator/denominator)-1)))
-# when local max in Other, don't update e_max
-
 
 import numpy as np
 import spookyhash
@@ -29,12 +23,12 @@ class Node():
 class Head(Node):
     def __init__(self,count=1):
         super().__init__(count)
-        self.distinct = 0
+        self.distinct = hyperloglog.HyperLogLog(0.01)
         self.maxID=''
     def __str__(self):
-        return '[total count: {}, distinct: {}, max: {}]'.format(self.count,self.distinct,self.maxID)
+        return '[total count: {}, distinct: {}, max: {}]'.format(self.count,len(self.distinct),self.maxID)
     def __repr__(self):
-        return '[total count: {}, distinct: {}, max: {}]'.format(self.count,self.distinct,self.maxID)
+        return '[total count: {}, distinct: {}, max: {}]'.format(self.count,len(self.distinct),self.maxID)
 
 class Tail(Node):
     def __init__(self,ID,count):
@@ -55,12 +49,9 @@ def UpdateSk(element,Sk_head,Sk):
     #print("{} send to Sk[{}][{}]".format(element,row,col))
     # ==========================update sketch==========================
     Sk_head[row].count+=element.count
-    if col<width:
-        # e in Sketch
-        Sk[row][col]+=1
-    else:
-        # e in Other
-        Sk_head[row].distinct+=1
+    Sk_head[row].distinct.add(element.ID)
+    Sk[row][col]+=1
+
     Update_local_max(Sk_head[row],Sk[row],element,col)
     Update_emax(Sk_head,Sk)
 
@@ -76,62 +67,31 @@ def UpdateSk(element,Sk_head,Sk):
 def Update_local_max(head_item,element_list,element,column):
     # local max need only 1 row
     #print("In Update_local_max:")
-    numerator,denominator=get_fraction()
     width,depth=get_width_depth()
     if head_item.maxID=='':
         head_item.maxID=element.ID
     else:
-        local_max_col=(mmh3.hash(head_item.maxID,signed=False))% ((width*numerator)//denominator)
-        if local_max_col<width:
-            # local max in Sketch
-            if column<width:
-                # e in Sketch
-                if element_list[column]>element_list[local_max_col]:
-                       head_item.maxID=element.ID
-            else:
-                # e in Other
-                avg=int((head_item.count-head_item.distinct)//(width*((numerator/denominator)-1)))
-                if avg>element_list[local_max_col]:
-                     head_item.maxID=element.ID
-        else:
-            # local max in Other
-            count_sum=sum(i for i in element_list)
-            avg=int((head_item.count-head_item.distinct)//(width*((numerator/denominator)-1)))
-            if column<width:
-                # e in Sketch
-                if column<width:
-                    if element_list[column]>avg:
-                           head_item.maxID=element.ID
-                else:
-                    pass
+        # local_max_col=(mmh3.hash(head_item.maxID,signed=False))% ((width*numerator)//denominator)
+        local_max_col=(mmh3.hash(head_item.maxID,signed=False))% width
+        if element_list[local_max_col]<element_list[column]:
+            head_item.maxID=element.ID
+
 
 # ==========================update e_max==========================
 def Update_emax(head,sketch):
     # pass whole array
     #print("In Update_emax:")
     e_max=get_emax()
-    numerator,denominator=get_fraction()
     width,depth=get_width_depth()
     for i in range(len(head)):
         if head[i].maxID=='':
             continue
         else:
             local_max_col,local_max_row=position(Tail(head[i].maxID,0))
-            if local_max_col<width:
-                # local max in Sketch
-                if sketch[local_max_row][local_max_col]>e_max.count:
-                    e_max.ID=head[i].maxID
-                    e_max.count=sketch[local_max_row][local_max_col]
-            else:
-                pass
-                '''
-                # local max in Other
-                count_sum=sum(j for j in sketch[i])
-                avg=int((head[i].count-count_sum)//(width*((numerator/denominator)-1)))
-                if avg>e_max.count:
-                    e_max.ID=head[i].maxID
-                    e_max.count=avg
-                '''
+            if sketch[local_max_row][local_max_col]>e_max.count:
+                e_max.ID=head[i].maxID
+                e_max.count=sketch[local_max_row][local_max_col]
+
 # ========================== BringBack=========================
 def BringBack(e_min,head,sketch):
     # bring e_max back to Top
@@ -146,16 +106,12 @@ def BringBack(e_min,head,sketch):
 # ==========================DeleteSk=========================
 def DeleteSk(element,head,sketch):
     # e_max in sketch: sketch[r][c]=0, total count-=sketch[row][col]
-    # e_max in Other: total count-=e_max.count
     width,depth=get_width_depth()
     col,row=position(element)
     head[row].count-=e_max.count
         # total_count-=element.count
-
-    if col<width:
-        # e_max in sketch, need to config sk[r][c]=0
-        sketch[row][col]=0
-        head[row].maxID=''
+    sketch[row][col]=0
+    head[row].maxID=''
     element.ID=""
     element.count=0
 # ==========================Tools=========================    
@@ -173,7 +129,6 @@ def find(e,element_list):
     return index
 
 def position(element):
-    numerator,denominator=get_fraction()
     width,depth=get_width_depth()
     hash1=spookyhash.hash32(bytes(str(element.ID),encoding='utf-8'))
         # input: byte
@@ -181,11 +136,9 @@ def position(element):
     hash2=mmh3.hash(element.ID, signed=False)
         # input: str
         # output: unsigned- 32 bit int
-    col=hash2 % ((width*numerator)//denominator)
+    col=hash2 % width
     row=hash1 % depth
-    return col,row
-def get_fraction():
-    return numerator,denominator    
+    return col,row 
     
 # ==========================main=========================    
 
@@ -195,8 +148,6 @@ src_data=os.path.join(filepath,filename)
 depth=4
 width=256
 size=512
-numerator=12
-denominator=10
 
 start=time.time()
 
@@ -205,7 +156,7 @@ Sketch=np.zeros((depth,width),dtype='int32')
 e_max=Tail('',0)
 Top=[]
 
-item_count=10000
+item_count=100
 income=0
 with open(src_data,'r') as file:
     while True:
@@ -213,7 +164,7 @@ with open(src_data,'r') as file:
         if not e:
             break
         else:
-            # item_count-=1
+            #item_count-=1
             #income+=1
             #print("read {}-th element:{}".format(income,e))
             item=Tail(e,1)            
@@ -225,27 +176,93 @@ with open(src_data,'r') as file:
                     UpdateSk(item,Sk_head,Sketch)
             else:
                 Top[index].count+=1
-        Top.sort(key=operator.attrgetter('count'),reverse=True)
+                if index==0 or Top[index].count< Top[index-1].count:
+                    pass
+                else:
+                    Top.sort(key=operator.attrgetter('count'),reverse=True)
         if e_max.count>Top[-1].count:
             BringBack(Top[-1],Sk_head,Sketch)
+            Top.sort(key=operator.attrgetter('count'),reverse=True)
             #print('Top after BringBack: \n\t{}'.format(Top)) 
 
 end=time.time()
-print("Execution time:{} seconds.".format(str(end-start)))
-print("Total memory {} bytes".format(sys.getsizeof(Top)+sys.getsizeof(Sketch)+sys.getsizeof(Sk_head)))
-print("Top:{} bytes, Sketch:{} bytes, Sketch_head:{} bytes.".format(sys.getsizeof(Top),sys.getsizeof(Sketch),sys.getsizeof(Sk_head)))
+print("Top-{},Sketch:{}*{}".format(size,depth,width))
+print("Execution time:{:8.3f} seconds.".format(end-start))
+print("Total memory {} bytes=".format(sys.getsizeof(Top)+Sketch.nbytes+sys.getsizeof(Sk_head[0])*depth),end='')
+print("Top:{} bytes, Sketch:{} bytes, Sketch_head:{} bytes.".format(sys.getsizeof(Top),Sketch.nbytes,sys.getsizeof(Sk_head[0])*depth))
+
+'''
 print("TOP[20]:\n{}".format(Top[:20]))
 print("e_max:{}".format(e_max))
 for i in range(len(Sketch)):
     print("Sk[{}]:{},{}".format(i,Sk_head[i],Sketch[i]))
 print('')
 
+'''
 
-templi=[]
-for i in Top:
-    templi.append([i.ID,i.count])
 
+templi=[[i.ID,i.count] for i in Top]
 df=pd.DataFrame(templi,columns=['ID', 'Count'])
-df.to_csv("..\\result\\kosarak\\My_kosarak_hash.csv",index=False)
-df.head(20)
+path='..\\result\\kosarak\\'
+name="My_kosarak"+'_'+str(size)+'_'+str(depth)+'_'+str(width)
+df.to_csv(path+name+".csv",index=False)
 
+
+#====================result compare=============================
+groundtruth='kosarak_ground_truth.csv'
+final=name+".csv"
+
+# ====================precision, ARE, AAE====================
+grtruth=pd.read_csv(os.path.join(path,groundtruth))
+    # compare with Top-k and groundtruth[k]
+My_result=pd.read_csv(os.path.join(path,final))
+
+# precision
+gt_set=set(grtruth['Element'][:size])
+    # Top-size of ground truth
+my_set=set(My_result['ID'])
+precision=len(gt_set & my_set)/len(my_set)
+    # &: set 交集運算
+print("Precision: {:8.4f}".format(precision))
+        
+# ARE/AAE
+gt_dict=dict(grtruth.values.tolist())
+my_dict=dict(My_result.values.tolist())
+distinct=len(gt_dict)
+top_are_error=0
+top_aae_error=0
+all_are_error=0
+all_aae_error=0
+tp=0
+fp=0
+
+for item in gt_dict:
+    if item in my_dict:
+        # all ARE and AAE in my_result
+        top_are_error+=abs(my_dict[item]-gt_dict[item])/my_dict[item]
+        top_aae_error+=abs(my_dict[item]-gt_dict[item])
+        all_are_error+=abs(my_dict[item]-gt_dict[item])/my_dict[item]
+        all_aae_error+=abs(my_dict[item]-gt_dict[item])
+        if my_dict[item]==gt_dict[item]:
+            tp+=1
+        else:
+            fp+=1
+    else:
+        # ARE/AAE of Sketch
+        item_col,item_row=position(Tail(item,1))
+        if Sketch[item_row][item_col]==0:
+            all_are_error+=gt_dict[item]
+            all_aae_error+=gt_dict[item]
+        else:
+            all_are_error+=abs(Sketch[item_row][item_col]-gt_dict[item])/(Sketch[item_row][item_col])
+            all_aae_error+=abs(Sketch[item_row][item_col]-gt_dict[item])
+
+top_ARE=top_are_error/distinct
+top_AAE=top_aae_error/distinct
+all_ARE=all_are_error/distinct
+all_AAE=all_aae_error/distinct
+print("Find:{}, TP:{}, FP:{}".format(len(gt_set & my_set),tp,fp))
+print("top_ARE: {:8.6f}".format(top_ARE))
+print("top_AAE: {:8.6f}".format(top_AAE))
+print("all_ARE: {:8.6f}".format(all_ARE))
+print("all_AAE: {:8.6f}".format(all_AAE))
