@@ -1,0 +1,2 @@
+Top-k,Sketch,Total memory,Exe_time,Find,Precision,ARE-Top,AAE-Top,ARE-all,AAE-all
+1024,8*128,13568 bytes =Top:9024+ Sketch:4096+ Sk_head:448,203.096,"Find:606, TP:79, FP:945",0.5918,0.054816,3.929688,0.984971,1.186155
