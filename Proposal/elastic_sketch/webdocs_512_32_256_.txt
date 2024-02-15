@@ -1,0 +1,12 @@
+webdocs_0
+
+Top-512,Sketch:32*256
+Execution time:4279.488 seconds.
+Total memory 69760 bytes= Top:4160 bytes, Sketch:65600 bytes.
+Precision:   0.5820
+Find:298, TP:298, FP:214
+Top_ARE: 0.656036
+Top_AAE: 6293.884766
+all_ARE: 17927.818403
+all_AAE: 24045.194718
+Estimate time: 237.790 seconds.

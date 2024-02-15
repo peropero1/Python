@@ -1,0 +1,31 @@
+def Query8(e,Top_dict,Sk_head,Sketch,distinct):
+    # e is ID, type(e)=str
+    # local_maxID : list of local max element in each row of Sketch
+    # distinct : numbers of distinct element.
+    count=0
+    if Top_dict.get(e):
+        count=Top_dict[e]
+    else:
+        # e in Sketch
+        col,row=positionCS(DS.Tail(e,0))
+        max_col,max_row=positionCS(DS.Tail(Sk_head[row].maxID,0))
+        if e == Sk_head[row].maxID:
+            # e is LHH
+            temp=0
+            for i in range(Config.width):
+                if Sketch[row][i]>Sketch[row][max_col]:
+                    temp+=Sketch[row][i]-Sketch[row][max_col]
+            count=int((Sketch[row][col]+Sk_head[row].keep+temp)/2)
+            min_ele = min(Top_dict, key=Top_dict.get)
+            if count>=Top_dict[min_ele]:
+                count=Top_dict[min_ele]
+            #print("{} is LHH with count {}".format(e,count))
+        else:
+            # e is not LHH
+            if (Config.width*Config.depth)/distinct<1:
+                count=int((Sketch[row][col]*Config.width/distinct)*Config.depth)
+            else:
+                count=Sketch[row][col]
+    if count<1:
+        count=1
+    return count

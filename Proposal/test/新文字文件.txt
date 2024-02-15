@@ -1,0 +1,5 @@
+## gpro2dot + graphviz的指令
+執行並輸出.out檔：
+python -m cProfile -o es.out webdocs.py
+產生圖形：
+python -m gprof2dot -f pstats es.out | dot -T png -o es.png

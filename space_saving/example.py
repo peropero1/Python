@@ -45,10 +45,10 @@ def main():
         return
 
     size = sys.argv[1]
-
+        # sys.argv[1]=<StreamSummary Size>
     with open(sys.argv[2], "r") as f:
         data = f.read().splitlines()
-
+        # sys.argv[2]=<file_name>
     data = [x for x in data if not x.startswith('#') and not len(x) == 0]
     ss = StreamSummary(int(size))
     
